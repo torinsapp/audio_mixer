@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows Volume Control</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            color: white;
+        }
+        .container {
+            padding: 20px;
+        }
+        .app-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 90%;
+            max-width: 400px;
+            margin: 10px auto;
+            padding: 10px;
+            border-radius: 10px;
+            background: #333;
+            transition: background 0.3s;
+        }
+        .app-container img {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .slider {
+            width: 60%;
+        }
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            background: #1e1e1e;
+            padding: 10px 0;
+            border-top: 1px solid #444;
+        }
+        .nav-item {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .nav-item.active {
+            background: #444;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="volume-page" class="container">
+    <h2>Application Volume Control</h2>
+    <div id="volume-controls"></div>
+</div>
+
+<div id="empty-page" class="container hidden">
+    <h2>Second Page (Empty)</h2>
+    <p>This page is currently under development.</p>
+</div>
+
+<div class="nav-bar">
+    <div class="nav-item active" onclick="showTab('volume-page', this)">🎵 Volume</div>
+    <div class="nav-item" onclick="showTab('empty-page', this)">🔧 Settings</div>
+</div>
+
+<script>
+    function fetchVolumes() {
+        $.get("/volumes", function(data) {
+            let html = '';
+            data.forEach(app => {
+                html += `
+                        <div class="app-container">
+                            <img src="${app.icon}" alt="${app.name}" onclick="toggleMute('${app.name}')">
+                            <span>${app.name}</span>
+                            <input type="range" class="slider" min="0" max="100" value="${app.volume}"
+                                onchange="setVolume('${app.name}', this.value)">
+                        </div>`;
+            });
+            $("#volume-controls").html(html);
+        });
+    }
+
+    function setVolume(appName, volume) {
+        fetch("/set_volume", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ app_name: appName, volume: volume })
+        })
+            .then(response => response.json())
+            .then(data => console.log(data))
+            .catch(error => console.error("Error:", error));
+    }
+
+    function toggleMute(appName) {
+        fetch("/toggle_mute", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ app_name: appName })
+        })
+            .then(response => response.json())
+            .then(data => console.log(data))
+            .catch(error => console.error("Error:", error));
+    }
+
+    function showTab(tabId, element) {
+        $(".container").addClass("hidden");
+        $("#" + tabId).removeClass("hidden");
+
+        $(".nav-item").removeClass("active");
+        $(element).addClass("active");
+    }
+
+    fetchVolumes();
+    setInterval(fetchVolumes, 5000);
+</script>
+
+</body>
+</html>
